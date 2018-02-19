@@ -1,76 +1,164 @@
 import pygame
+import random
 from pygame.locals import*
 import os
 import sys
 
-SCREEN_WIDTH = 800
-SCREEN_HEIGHT = 600
-ARCHIVOS = r"C:\Users\Usuario\AppData\Local\Programs\Python\Python35"
+SCREEN_DIMS = (800,600)
+BLACK = (0,0,0)
+WHITE = (255,255,255)
 
-def load_image(nombre, dir_imagen, alpha=False):
-    ruta = os.path.join(dir_imagen, nombre)
-    try:
-        image = pygame.image.load(ruta)
-    except:
-        print("Error, no se puede cargar la imagen: "+ruta)
-        sys.exit(1)
-    if alpha is True:
-        image = image.convert_alpha()
-    else:
-        image = image.convert()
-    return image
+dirs = {
+    K_UP:(0,-1),
+    K_DOWN:(0,1),
+    K_RIGHT:(1,0),
+    K_LEFT:(-1,0)
+}
 
-def load_sound(nombre, dir_sonido):
-    ruta = os.path.join(dir_sonido, nombre)
-    try:
-        sonido = pygame.mixer.Sound(ruta)
-    except (pygame.error) as message:
-        print("No se pudo cargar el sonido: ",ruta)
-        sonido = None
-    return sonido
+walls = [
+    "                    ",
+    "                    ",
+    "                    ",
+    "                    ",
+    "                    ",
+    "                    ",
+    "                    ",
+    "                    ",
+    "                    ",
+    "               A    ",
+    "                    ",
+    "             A      ",
+    "             A      ",
+    "       A     A      ",
+    "                    "]
+
+class culebra:
+
+    def __init__(self):
+        self.thicc = 40
+        self.px = 80
+        self.py = 80
+        self.speedx = 0
+        self.speedy = self.thicc
+        self.rect = Rect(self.px,self.py,self.thicc,self.thicc)
+        self.body = []
+        self.time = pygame.time.get_ticks()
+
+    def step(self):
+        self.rect.topleft = (self.px,self.py)
+        pygame.draw.rect(screen, BLACK, self.rect)
+
+        n_time = pygame.time.get_ticks()
+
+        if (n_time - self.time) >= 400: 
+            self.px += self.speedx
+            self.py += self.speedy
+            self.time = n_time
+            switch(self.body)
+            if len(self.body)>0:
+                self.body[0]=self.rect.topleft
+
+            for i in range(1, len(self.body)):
+                if self.body[i] == self.rect.topleft:
+                    pygame.event.post(pygame.event.Event(USEREVENT, code="kill"))
+            
+        if self.rect.centerx < 0 or self.rect.centerx > SCREEN_DIMS[0] or self.rect.centery < 0 or self.rect.centery > SCREEN_DIMS[1]:
+            pygame.event.post(pygame.event.Event(USEREVENT, code="kill"))
+
+
+    def direccionar(self, key):
+        try:
+            self.speedx = self.thicc*dirs[key][0]
+            self.speedy = self.thicc*dirs[key][1]
+        except:
+            pass
+
+    def eat(self):
+        self.body.append(0)
+        switch(self.body)
+        if len(self.body)>0:
+            self.body[0]=self.rect.topleft
+        self.px += self.speedx
+        self.py += self.speedy
+        self.rect.topleft = (self.px,self.py)
+
+    def serpenteo(self):
+        for i in range(len(self.body)):
+            pygame.draw.rect(screen, BLACK, (self.body[i][0],self.body[i][1],self.thicc,self.thicc))
+        
+
+
+class comidita:
+    
+    def __init__(self):
+        self.px = None
+        self.py = None
+        self.spawn()
+        self.rect = Rect(self.px,self.py,40,40)
+
+    def update(self, player):
+        if self.rect.colliderect(player.rect):
+            player.eat()
+            self.spawn()
+            self.rect.topleft = (self.px,self.py)
+        pygame.draw.rect(screen, (255,0,0), self.rect)
+
+    def spawn(self):
+        self.px = random.randint(0,(SCREEN_DIMS[0]-40)/40)*40
+        self.py = random.randint(0,(SCREEN_DIMS[1]-40)/40)*40
+
+        
 
 def switch(array):
-    #Add blank space value to the end of the list
-    array.append(0)
-    #Get last index
-    i = len(array)-1
-    #Loop from top to bottom copying the previous item to current index
-    while True:
+    for i in range(len(array)-1, 0, -1):
         array[i] = array[i-1]
-        i-=1
-        if i<=0:
-            break
 
 pygame.init()
-screen = pygame.display.set_mode((SCREEN_WIDTH,SCREEN_HEIGHT))
+screen = pygame.display.set_mode(SCREEN_DIMS)
 pygame.display.set_caption("papu")
 
 clock = pygame.time.Clock()
 
-x = 200
-y = 200
+snake = culebra()
+food = comidita()
 
-head = Rect(x, y, 30, 30)
-
-array = []
-
-radius = 5
 
 while True:
-    clock.tick(30)
+    screen.fill(WHITE)
 
-    screen.fill((0,0,0))
+    pos = [0,0]
+    for row in walls:
+        for i in row:
+            if i == "A":
+                pygame.draw.rect(screen,(100,100,100), (pos[0],pos[1],40,40))
+            pos[0]+=40
+        pos[1]+=40
 
-    pygame.draw.circle(screen, (218, 112, 214), (100,100), radius)
+    snake.step()
+    snake.serpenteo()
+    food.update(snake)
 
-    radius += 1
+    for i in range(0, SCREEN_DIMS[0], 40):
+        pygame.draw.line(screen, (100,100,100), (i,0), (i,SCREEN_DIMS[1]))
+
+    for i in range(0, SCREEN_DIMS[1], 40):
+        pygame.draw.line(screen, (100,100,100), (0,i), (SCREEN_DIMS[0],i))
 
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             pygame.quit()
             sys.exit()
-        if event.type == pygame.MOUSEBUTTONDOWN:
-            switch(array)
-            array[0]=[x, y]
+        if event.type == pygame.KEYDOWN:
+            snake.direccionar(event.key)
+            if event.key == K_SPACE:
+                snake.eat()
+        if event.type == USEREVENT:
+            if event.code == "kill":
+                pygame.draw.rect(screen, (0,0,255), (100,100,SCREEN_DIMS[0]-100,SCREEN_DIMS[1]-100))
+                font = pygame.font.Font(None, 60)
+                screen.blit(font.render("Super Coin Get", True, WHITE), (100,100,SCREEN_DIMS[0]-100,SCREEN_DIMS[1]-100))
+                pygame.time.delay(3000)
+                pygame.quit()
+                sys.exit()
 
     pygame.display.flip()
