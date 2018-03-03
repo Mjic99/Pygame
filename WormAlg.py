@@ -15,22 +15,6 @@ dirs = {
     K_LEFT:(-1,0)
 }
 
-walls = [
-    "                    ",
-    "                    ",
-    "                    ",
-    "                    ",
-    "                    ",
-    "                    ",
-    "                    ",
-    "                    ",
-    "                    ",
-    "               A    ",
-    "                    ",
-    "             A      ",
-    "             A      ",
-    "       A     A      ",
-    "                    "]
 
 class culebra:
 
@@ -118,21 +102,14 @@ screen = pygame.display.set_mode(SCREEN_DIMS)
 pygame.display.set_caption("papu")
 
 clock = pygame.time.Clock()
+text = pygame.font.Font(None, 40)
 
 snake = culebra()
 food = comidita()
 
-
 while True:
+    
     screen.fill(WHITE)
-
-    pos = [0,0]
-    for row in walls:
-        for i in row:
-            if i == "A":
-                pygame.draw.rect(screen,(100,100,100), (pos[0],pos[1],40,40))
-            pos[0]+=40
-        pos[1]+=40
 
     snake.step()
     snake.serpenteo()
@@ -143,6 +120,7 @@ while True:
 
     for i in range(0, SCREEN_DIMS[1], 40):
         pygame.draw.line(screen, (100,100,100), (0,i), (SCREEN_DIMS[0],i))
+    
 
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
@@ -154,11 +132,8 @@ while True:
                 snake.eat()
         if event.type == USEREVENT:
             if event.code == "kill":
-                pygame.draw.rect(screen, (0,0,255), (100,100,SCREEN_DIMS[0]-100,SCREEN_DIMS[1]-100))
-                font = pygame.font.Font(None, 60)
-                screen.blit(font.render("Super Coin Get", True, WHITE), (100,100,SCREEN_DIMS[0]-100,SCREEN_DIMS[1]-100))
-                pygame.time.delay(3000)
-                pygame.quit()
-                sys.exit()
-
+                pygame.draw.rect(screen, BLACK, (100,100,SCREEN_DIMS[0]-200,SCREEN_DIMS[1]-200))
+                message = text.render("PERDISTE", True, WHITE, BLACK)
+                screen.blit(message, (200,200))
+                
     pygame.display.flip()
